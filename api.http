@@ -1,0 +1,427 @@
+### LXD Management API — request collection
+### Works in VS Code "REST Client" extension and JetBrains HTTP Client.
+###
+### Usage:
+###   1. Run the API (make up) and seed an admin (SEED_ADMIN_* in .env).
+###   2. Send the "Login" request; copy the access_token into @token below.
+###   3. Send any other request.
+###
+### Variables ----------------------------------------------------------------
+@host = http://localhost:8000
+@token = PASTE_ACCESS_TOKEN_HERE
+@auth = Authorization: Bearer {{token}}
+@json = Content-Type: application/json
+
+### -------------------------------------------------------------------------
+### Health & system
+### -------------------------------------------------------------------------
+
+### Unversioned liveness (no auth)
+GET {{host}}/health
+
+### Deep health (checks LXD connectivity) — no auth
+GET {{host}}/api/v1/system/health
+
+### LXD server info (version, auth, addresses)
+GET {{host}}/api/v1/system/info
+{{auth}}
+
+### Host resources (CPU, memory, storage, network)
+GET {{host}}/api/v1/system/resources
+{{auth}}
+
+### Pool-specific resource usage
+GET {{host}}/api/v1/system/storage-pools/default/resources
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Auth
+### -------------------------------------------------------------------------
+
+### Register a new user (admin only)
+# @name register
+POST {{host}}/api/v1/auth/register
+{{auth}}
+{{json}}
+
+{
+  "username": "operator1",
+  "password": "operator-pass-123",
+  "role": "operator"
+}
+
+### Login -> access + refresh tokens
+# @name login
+POST {{host}}/api/v1/auth/login
+{{json}}
+
+{
+  "username": "admin",
+  "password": "changeme123"
+}
+
+### Refresh the access token
+POST {{host}}/api/v1/auth/refresh
+{{json}}
+
+{
+  "refresh_token": "PASTE_REFRESH_TOKEN_HERE"
+}
+
+### Current user
+GET {{host}}/api/v1/auth/me
+{{auth}}
+
+### List users (admin only)
+GET {{host}}/api/v1/auth/users
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Instances
+### -------------------------------------------------------------------------
+
+### List instances (full objects, paginated, optional project/type/filter)
+GET {{host}}/api/v1/instances?limit=20&offset=0&project=default
+{{auth}}
+
+### List only virtual machines
+GET {{host}}/api/v1/instances?instance-type=virtual-machine
+{{auth}}
+
+### OData filter: running instances only
+GET {{host}}/api/v1/instances?filter=status%20eq%20Running
+{{auth}}
+
+### Create an instance (async -> returns operation ref)
+# @name createInstance
+POST {{host}}/api/v1/instances
+{{auth}}
+{{json}}
+
+{
+  "name": "web1",
+  "instance_type": "container",
+  "source": {
+    "type": "image",
+    "alias": "ubuntu/22.04"
+  },
+  "config": {
+    "limits.cpu": "2",
+    "limits.memory": "2GiB"
+  }
+}
+
+### Get an instance
+GET {{host}}/api/v1/instances/web1
+{{auth}}
+
+### Update (full replace, async)
+PUT {{host}}/api/v1/instances/web1
+{{auth}}
+{{json}}
+
+{
+  "config": {"limits.cpu": "4"},
+  "description": "web server"
+}
+
+### Patch (partial update, async)
+PATCH {{host}}/api/v1/instances/web1
+{{auth}}
+{{json}}
+
+{
+  "description": "patched description"
+}
+
+### Delete (async)
+DELETE {{host}}/api/v1/instances/web1
+{{auth}}
+
+### Instance state (CPU/mem/net/IPs)
+GET {{host}}/api/v1/instances/web1/state
+{{auth}}
+
+### Start instance (async; ?wait=true blocks until started)
+PUT {{host}}/api/v1/instances/web1/state
+{{auth}}
+{{json}}
+
+{
+  "action": "start",
+  "timeout": 60
+}
+
+### Stop instance
+PUT {{host}}/api/v1/instances/web1/state
+{{auth}}
+{{json}}
+
+{"action": "stop", "force": false}
+
+### Restart
+PUT {{host}}/api/v1/instances/web1/state
+{{auth}}
+{{json}}
+
+{"action": "restart"}
+
+### Freeze / unfreeze
+PUT {{host}}/api/v1/instances/web1/state
+{{auth}}
+{{json}}
+
+{"action": "freeze"}
+
+### Exec (non-interactive) — triggers an operation
+POST {{host}}/api/v1/instances/web1/exec
+{{auth}}
+{{json}}
+
+{
+  "command": ["/bin/ls", "-la", "/"],
+  "interactive": false
+}
+
+### Interactive exec over WebSocket (use a WS client, not REST client):
+#   ws://localhost:8000/api/v1/instances/web1/exec/ws?token={{token}}&command=/bin/bash
+
+### Console over WebSocket:
+#   ws://localhost:8000/api/v1/instances/web1/console/ws?token={{token}}
+
+### List log files
+GET {{host}}/api/v1/instances/web1/logs
+{{auth}}
+
+### Stream a log file
+GET {{host}}/api/v1/instances/web1/logs/lxc.log
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Snapshots
+### -------------------------------------------------------------------------
+
+### List snapshots
+GET {{host}}/api/v1/instances/web1/snapshots
+{{auth}}
+
+### Create a snapshot (async)
+POST {{host}}/api/v1/instances/web1/snapshots
+{{auth}}
+{{json}}
+
+{
+  "name": "snap-001",
+  "stateful": false
+}
+
+### Restore from a snapshot (async)
+POST {{host}}/api/v1/instances/web1/snapshots/snap-001/restore
+{{auth}}
+
+### Delete a snapshot (async)
+DELETE {{host}}/api/v1/instances/web1/snapshots/snap-001
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Backups
+### -------------------------------------------------------------------------
+
+### List backups
+GET {{host}}/api/v1/instances/web1/backups
+{{auth}}
+
+### Create a backup (async; build the tarball in the background)
+POST {{host}}/api/v1/instances/web1/backups
+{{auth}}
+{{json}}
+
+{
+  "name": "bk-001",
+  "instance_only": false,
+  "optimized_storage": true,
+  "compression_algorithm": "gzip"
+}
+
+### Download the backup tarball
+GET {{host}}/api/v1/instances/web1/backups/bk-001/export
+{{auth}}
+
+### Delete a backup (async)
+DELETE {{host}}/api/v1/instances/web1/backups/bk-001
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Storage
+### -------------------------------------------------------------------------
+
+### List storage pools
+GET {{host}}/api/v1/storage/pools
+{{auth}}
+
+### Create a storage pool (async)
+POST {{host}}/api/v1/storage/pools
+{{auth}}
+{{json}}
+
+{
+  "name": "fast",
+  "driver": "zfs",
+  "config": {"size": "50GB"}
+}
+
+### Get / update / patch / delete a pool
+GET {{host}}/api/v1/storage/pools/fast
+{{auth}}
+
+PATCH {{host}}/api/v1/storage/pools/fast
+{{auth}}
+{{json}}
+
+{"config": {"zfs.pool_name": "fast"}}
+
+DELETE {{host}}/api/v1/storage/pools/fast
+{{auth}}
+
+### List volumes in a pool
+GET {{host}}/api/v1/storage/pools/default/volumes
+{{auth}}
+
+### Create a custom volume (async)
+POST {{host}}/api/v1/storage/pools/default/volumes
+{{auth}}
+{{json}}
+
+{
+  "name": "shared",
+  "type": "custom",
+  "content_type": "filesystem",
+  "config": {"size": "5GB"}
+}
+
+### Resize a custom volume (patch config.size)
+PATCH {{host}}/api/v1/storage/pools/default/volumes/custom/shared
+{{auth}}
+{{json}}
+
+{"config": {"size": "10GB"}}
+
+### Attach a custom volume to an instance (async)
+POST {{host}}/api/v1/storage/pools/default/volumes/custom/shared/attach?instance=web1
+{{auth}}
+
+### Detach (async)
+POST {{host}}/api/v1/storage/pools/default/volumes/custom/shared/detach?instance=web1
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Networks
+### -------------------------------------------------------------------------
+
+### List networks
+GET {{host}}/api/v1/networks
+{{auth}}
+
+### Create a managed network (async)
+POST {{host}}/api/v1/networks
+{{auth}}
+{{json}}
+
+{
+  "name": "lxdbr1",
+  "type": "bridge",
+  "config": {
+    "ipv4.address": "10.100.0.1/24",
+    "ipv4.nat": "true"
+  }
+}
+
+### Network state (leases / counters)
+GET {{host}}/api/v1/networks/lxdbr0/state
+{{auth}}
+
+### Attach a NIC to an instance (async)
+POST {{host}}/api/v1/networks/lxdbr0/attach?instance=web1&device_name=eth1&nic_name=eth1
+{{auth}}
+
+### Detach (async)
+POST {{host}}/api/v1/networks/lxdbr0/detach?instance=web1&device_name=eth1
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Projects
+### -------------------------------------------------------------------------
+
+### List projects
+GET {{host}}/api/v1/projects
+{{auth}}
+
+### Create a project (async)
+POST {{host}}/api/v1/projects
+{{auth}}
+{{json}}
+
+{
+  "name": "staging",
+  "config": {"features.images": "true"}
+}
+
+### Scoped request: list instances in the staging project
+GET {{host}}/api/v1/instances?project=staging
+{{auth}}
+
+### -------------------------------------------------------------------------
+### Images
+### -------------------------------------------------------------------------
+
+### List local images
+GET {{host}}/api/v1/images
+{{auth}}
+
+### Copy/import an image from a remote server (async -> operation ref)
+POST {{host}}/api/v1/images
+{{auth}}
+{{json}}
+
+{
+  "source": {
+    "type": "image",
+    "alias": "ubuntu/22.04",
+    "server": "https://images.linuxcontainers.org",
+    "protocol": "simplestreams"
+  },
+  "auto_update": true
+}
+
+### Create an alias for an image
+POST {{host}}/api/v1/images/aliases
+{{auth}}
+{{json}}
+
+{
+  "name": "ubuntu-2204",
+  "target": "PASTE_FINGERPRINT_HERE"
+}
+
+### -------------------------------------------------------------------------
+### Operations (async ops)
+### -------------------------------------------------------------------------
+
+### List running operations
+GET {{host}}/api/v1/operations
+{{auth}}
+
+### Get an operation's status
+GET {{host}}/api/v1/operations/OPERATION_ID_HERE
+{{auth}}
+
+### Long-poll wait for completion (?timeout in seconds; 0 = unbounded)
+GET {{host}}/api/v1/operations/OPERATION_ID_HERE/wait?timeout=30
+{{auth}}
+
+### Cancel an operation (operator+)
+DELETE {{host}}/api/v1/operations/OPERATION_ID_HERE
+{{auth}}
+
+### Subscribe to live operation events over WebSocket:
+#   ws://localhost:8000/api/v1/operations/ws?token={{token}}

@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "LXD Management API",
+    "_postman_id": "lxd-api-collection-0001",
+    "description": "CRUD API for managing an LXD server (instances, storage, networks, projects, images, operations). All /api/v1 endpoints require a Bearer JWT except /health.\n\nSet the {{token}} collection variable by running the 'Login' request's Tests script, or paste it manually.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health & System",
+      "item": [
+        {
+          "name": "Health (unversioned)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Deep health (LXD connectivity)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/system/health",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Server info",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/system/info" }
+        },
+        {
+          "name": "Host resources",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/system/resources" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) { pm.collectionVariables.set('token', json.access_token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"changeme123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register (admin only)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"operator1\",\n  \"password\": \"operator-pass-123\",\n  \"role\": \"operator\"\n}"
+            }
+          }
+        },
+        { "name": "Current user", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me" } },
+        { "name": "List users", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/users" } }
+      ]
+    },
+    {
+      "name": "Instances",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/instances" } },
+        {
+          "name": "Create (async)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/instances",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"web1\",\n  \"instance_type\": \"container\",\n  \"source\": {\"type\": \"image\", \"alias\": \"ubuntu/22.04\"}\n}"
+            }
+          }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/instances/web1" } },
+        { "name": "State (CPU/mem/IPs)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/instances/web1/state" } },
+        {
+          "name": "Start (async)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/instances/web1/state",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"action\": \"start\"}" }
+          }
+        },
+        {
+          "name": "Stop (async)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/instances/web1/state",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"action\": \"stop\"}" }
+          }
+        },
+        { "name": "Delete (async)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/instances/web1" } }
+      ]
+    },
+    {
+      "name": "Storage",
+      "item": [
+        { "name": "List pools", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/storage/pools" } },
+        {
+          "name": "Create pool (async)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/storage/pools",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"fast\",\"driver\":\"zfs\",\"config\":{\"size\":\"50GB\"}}" }
+          }
+        },
+        { "name": "List volumes", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/storage/pools/default/volumes" } }
+      ]
+    },
+    {
+      "name": "Networks",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/networks" } },
+        { "name": "State", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/networks/lxdbr0/state" } }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/projects" } },
+        {
+          "name": "Create (async)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/projects",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"staging\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/images" } },
+        {
+          "name": "Copy from remote (async)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/images",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"source\":{\"type\":\"image\",\"alias\":\"ubuntu/22.04\",\"server\":\"https://images.linuxcontainers.org\",\"protocol\":\"simplestreams\"}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/operations" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/operations/{{opId}}" } },
+        { "name": "Wait", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/operations/{{opId}}/wait?timeout=30" } },
+        { "name": "Cancel", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/operations/{{opId}}" } }
+      ]
+    }
+  ]
+}
