@@ -18,6 +18,7 @@ from app.api.v1.routes.networks import router as networks_router
 from app.api.v1.routes.projects import router as projects_router
 from app.api.v1.routes.images import router as images_router
 from app.api.v1.routes.operations import router as operations_router
+from app.api.v1.routes.system import router as system_router
 
 v1_router = APIRouter()
 v1_router.include_router(auth_router)
@@ -29,6 +30,7 @@ v1_router.include_router(networks_router)
 v1_router.include_router(projects_router)
 v1_router.include_router(images_router)
 v1_router.include_router(operations_router)
+v1_router.include_router(system_router)
 
 # Later steps append: instances, snapshots, backups, storage, networks,
 # projects, images, operations, system.
