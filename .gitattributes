@@ -1,0 +1,7 @@
+# Normalize line endings: text files use LF in the repo, checked out as-is.
+* text=auto eol=lf
+
+# Ensure shell scripts and Makefiles always use LF (they break with CRLF).
+*.sh text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
