@@ -35,9 +35,9 @@ It supports **both** ways LXD's own clients connect:
 
 ## Status
 
-[![CI](https://github.com/{{YOUR_ORG}}/lxd-api/actions/workflows/ci.yml/badge.svg)](https://github.com/{{YOUR_ORG}}/lxd-api/actions/workflows/ci.yml)
+[![CI](https://github.com/alilotfi23/lxd-api/actions/workflows/ci.yml/badge.svg)](https://github.com/alilotfi23/lxd-api/actions/workflows/ci.yml)
 
-> **Badge placement:** replace `{{YOUR_ORG}}` with your GitHub owner/repo and
+> **Badge placement:** replace `alilotfi23` with your GitHub owner/repo and
 > paste the line above at the top of this README. The badge reflects the
 > `.github/workflows/ci.yml` pipeline added in the CI step.
 
