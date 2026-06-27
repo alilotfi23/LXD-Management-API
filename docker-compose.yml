@@ -1,0 +1,54 @@
+# =============================================================================
+# docker-compose.yml — LXD Management API
+# =============================================================================
+#
+# Two profiles are provided:
+#   * local  — mounts the host's LXD Unix socket into the container.
+#   * remote — mounts a directory with client cert/key/CA for TLS mode.
+#
+# Usage:
+#   Local mode (default):
+#     cp .env.example .env          # then edit LXD_CONNECTION_MODE=local
+#     docker compose up             # or: docker compose --profile local up
+#
+#   Remote mode:
+#     docker compose --profile remote up
+#
+# =============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lxd-api
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persist the SQLite database across container restarts.
+      - api-data:/app/data
+
+      # --- Local mode: mount the host's LXD Unix socket ---
+      # The path depends on the LXD install type:
+      #   Snap install:   /var/snap/lxd/common/lxd/unix.socket
+      #   Native install: /var/lib/lxd/unix.socket
+      - "${LXD_SOCKET_PATH:-/var/snap/lxd/common/lxd/unix.socket}:/var/snap/lxd/common/lxd/unix.socket:ro"
+
+      # --- Remote mode: mount TLS client cert/key/CA directory ---
+      # Uncomment the line below and set LXD_TLS_DIR to the host directory
+      # containing client.crt, client.key, and optionally server-ca.crt.
+      # - "${LXD_TLS_DIR:-./tls}:/run/secrets/lxd:ro"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  api-data:
+    driver: local
