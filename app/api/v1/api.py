@@ -31,6 +31,3 @@ v1_router.include_router(projects_router)
 v1_router.include_router(images_router)
 v1_router.include_router(operations_router)
 v1_router.include_router(system_router)
-
-# Later steps append: instances, snapshots, backups, storage, networks,
-# projects, images, operations, system.
