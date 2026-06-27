@@ -1,0 +1,18 @@
+"""Aggregator for all versioned (/api/v1) routers.
+
+Each resource contributes its own `APIRouter`; this module includes them all
+under a single `v1_router` that the main app mounts at `/api/v1`. Health stays
+unversioned at `/health`.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from app.api.v1.routes.auth import router as auth_router
+
+v1_router = APIRouter()
+v1_router.include_router(auth_router)
+
+# Later steps append: instances, snapshots, backups, storage, networks,
+# projects, images, operations, system.

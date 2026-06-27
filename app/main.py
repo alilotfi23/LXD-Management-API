@@ -13,11 +13,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 from app import __version__
+from app.api.v1.api import v1_router
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.seed import seed_admin
 from app.db.session import AsyncSessionLocal, init_db
 from app.utils.logging import configure_logging, request_id_ctx
@@ -47,6 +51,16 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+# ---- slowapi rate limiting -------------------------------------------------
+# Use the shared limiter (app.core.limiter) so `@limiter.limit` on routes and
+# the app-state limiter are the same instance. Attach it to app.state and
+# register the handler that turns RateLimitExceeded into HTTP 429 responses.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---- Versioned router (/api/v1) -------------------------------------------
+app.include_router(v1_router, prefix="/api/v1")
 
 # ---- CORS ------------------------------------------------------------------
 app.add_middleware(
