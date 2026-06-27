@@ -10,9 +10,11 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1.routes.auth import router as auth_router
+from app.api.v1.routes.instances import router as instances_router
 
 v1_router = APIRouter()
 v1_router.include_router(auth_router)
+v1_router.include_router(instances_router)
 
 # Later steps append: instances, snapshots, backups, storage, networks,
 # projects, images, operations, system.
